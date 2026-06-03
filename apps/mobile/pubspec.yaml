@@ -30,7 +30,7 @@ dependencies:
   flutter_svg: ^2.0.9
 
   # Audio
-  record: ^5.1.0
+  record: ^5.2.1
   just_audio: ^0.9.38
 
   # Storage
