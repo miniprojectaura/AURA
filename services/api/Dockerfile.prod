@@ -92,27 +92,28 @@ RUN mkdir -p /app/logs /app/.cache && \
 # Security: drop all capabilities
 USER appuser
 
-# Expose port
-EXPOSE 8000
+# Expose port (Render sets PORT dynamically, default 8000 for local)
+EXPOSE ${PORT}
 
-# Health check
+# Health check (uses $PORT so it works on both local and Render)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -sf http://localhost:8000/health || exit 1
+    CMD curl -sf http://localhost:${PORT:-8000}/health || exit 1
 
 # Use tini as init system
 ENTRYPOINT ["tini", "--"]
 
 # Production command: gunicorn with uvicorn workers
-CMD ["gunicorn", "app.main:app", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--timeout", "120", \
-     "--graceful-timeout", "30", \
-     "--keep-alive", "5", \
-     "--max-requests", "1000", \
-     "--max-requests-jitter", "50", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "warning", \
-     "--forwarded-allow-ips", "*"]
+# Shell form so $PORT is expanded at runtime (Render sets PORT=10000)
+CMD gunicorn app.main:app \
+    --bind "0.0.0.0:${PORT:-8000}" \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level warning \
+    --forwarded-allow-ips "*"
