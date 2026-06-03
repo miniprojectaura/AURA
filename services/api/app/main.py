@@ -34,13 +34,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Database initialized")
 
     # Initialize Redis connection pool
-    app.state.redis = aioredis.from_url(
-        settings.REDIS_URL,
-        encoding="utf-8",
-        decode_responses=True,
-        max_connections=50,
-    )
     try:
+        if not settings.REDIS_URL or settings.REDIS_URL == "redis://localhost:6379/0":
+            raise ValueError("No production Redis configured")
+        app.state.redis = aioredis.from_url(
+            settings.REDIS_URL,
+            encoding="utf-8",
+            decode_responses=True,
+            max_connections=50,
+        )
         await app.state.redis.ping()
         logger.info("Redis connected")
     except Exception as e:
