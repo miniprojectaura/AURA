@@ -1,0 +1,108 @@
+# ============================================================
+# AI Fashion Designer - .gitignore
+# ============================================================
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# ---- Environment ----
+.env
+.env.local
+.env.production
+*.env
+
+# ---- IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Flutter / Dart ----
+apps/mobile/.dart_tool/
+apps/mobile/.packages
+apps/mobile/build/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/ios/Flutter/Flutter.framework
+apps/mobile/ios/Flutter/Flutter.podspec
+apps/mobile/ios/Runner/GeneratedPluginRegistrant.*
+apps/mobile/linux/flutter/
+apps/mobile/macos/Flutter/
+apps/mobile/windows/flutter/
+*.iml
+
+# ---- ML Models (large files) ----
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.gguf
+models/**/*.pt
+models/**/*.pth
+models/**/*.onnx
+models/**/*.tflite
+*.ckpt
+
+# ---- Data (large datasets) ----
+data/raw/
+data/processed/
+data/synthetic/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+!data/evaluation/.gitkeep
+
+# ---- Training Artifacts ----
+training/outputs/
+training/checkpoints/
+training/logs/
+mlruns/
+wandb/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ---- Testing ----
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Secrets & Certs ----
+*.pem
+*.key
+*.crt
+*.p12

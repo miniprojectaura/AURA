@@ -1,0 +1,202 @@
+# version: "3.8"  # Removed — obsolete in modern Docker Compose
+
+# ============================================================
+# AI Fashion Designer — Local Development Stack
+# ============================================================
+
+services:
+  # ---- FastAPI Backend ----
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/api:/app
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - fashionai
+
+  # ---- PostgreSQL 16 ----
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fashionai
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - fashionai
+
+  # ---- Redis 7 ----
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - fashionai
+
+  # ---- Qdrant Vector DB ----
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - fashionai
+
+  # ---- Ollama (Local LLM) ----
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - fashionai
+
+  # ---- MinIO (Local S3-Compatible Storage) ----
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - fashionai
+
+  # ---- Celery Worker ----
+  celery_worker:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4 -Q default,ml,notifications
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app inspect ping --timeout 10 || exit 0"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    networks:
+      - fashionai
+
+  # ---- Celery Beat (Scheduler) ----
+  celery_beat:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    healthcheck:
+      disable: true
+    networks:
+      - fashionai
+
+  # ---- Flower (Celery Monitoring) ----
+  flower:
+    image: mher/flower:latest
+    ports:
+      - "5555:5555"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_PORT: 5555
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - fashionai
+
+  # ---- Prometheus ----
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infra/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - fashionai
+
+  # ---- Grafana ----
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/system_health.json
+    depends_on:
+      - prometheus
+    networks:
+      - fashionai
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  ollama_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  fashionai:
+    driver: bridge

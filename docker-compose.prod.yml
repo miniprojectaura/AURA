@@ -1,0 +1,308 @@
+version: '3.8'
+
+# ============================================================
+# AI Fashion Designer - Production Docker Compose Override
+# ============================================================
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+  # ---- Core API Service (Production) ----
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile.prod
+    container_name: fashion-ai-api-prod
+    volumes: []
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_LEVEL: WARNING
+    command: >
+      gunicorn app.main:app
+        --bind 0.0.0.0:8000
+        --workers 4
+        --worker-class uvicorn.workers.UvicornWorker
+        --timeout 120
+        --graceful-timeout 30
+        --keep-alive 5
+        --max-requests 1000
+        --max-requests-jitter 50
+        --access-logfile -
+        --error-logfile -
+        --log-level warning
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - fashion-internal
+      - fashion-proxy
+
+  # ---- PostgreSQL (Production) ----
+  postgres:
+    container_name: fashion-ai-postgres-prod
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: >
+      postgres
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=128MB
+        -c work_mem=16MB
+        -c max_connections=100
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        -c log_min_duration_statement=1000
+        -c log_checkpoints=on
+        -c log_connections=on
+        -c log_disconnections=on
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Redis (Production) ----
+  redis:
+    container_name: fashion-ai-redis-prod
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+        --requirepass ${REDIS_PASSWORD}
+        --tcp-backlog 511
+        --timeout 300
+        --tcp-keepalive 300
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Qdrant (Production) ----
+  qdrant:
+    container_name: fashion-ai-qdrant-prod
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+      QDRANT__LOG_LEVEL: WARN
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    restart: always
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Celery Worker (Production) ----
+  celery_worker:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile.prod
+    container_name: fashion-ai-celery-worker-prod
+    volumes: []
+    command: >
+      celery -A app.workers.celery_app worker
+        --loglevel=warning
+        --concurrency=8
+        -Q default,ai,notifications
+        --max-tasks-per-child=100
+        --without-heartbeat
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - fashion-internal
+
+  # ---- Celery Beat (Production) ----
+  celery_beat:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile.prod
+    container_name: fashion-ai-celery-beat-prod
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - fashion-internal
+
+  # ---- Flower (Production - restricted access) ----
+  flower:
+    container_name: fashion-ai-flower-prod
+    environment:
+      FLOWER_BASIC_AUTH: ${FLOWER_USER}:${FLOWER_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: always
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Nginx Reverse Proxy ----
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fashion-ai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - fashion-proxy
+
+  # ---- Prometheus (Production) ----
+  prometheus:
+    container_name: fashion-ai-prometheus-prod
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=5GB"
+      - "--web.enable-lifecycle"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    restart: always
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Grafana (Production) ----
+  grafana:
+    container_name: fashion-ai-grafana-prod
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: https://${DOMAIN}/grafana
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    restart: always
+    networks:
+      - fashion-internal
+    ports: []
+
+  # ---- Remove dev-only services ----
+  ollama:
+    profiles:
+      - gpu
+    restart: always
+    networks:
+      - fashion-internal
+    ports: []
+
+  minio:
+    profiles:
+      - dev-only
+    networks:
+      - fashion-internal
+
+networks:
+  fashion-internal:
+    driver: bridge
+    internal: true
+    name: fashion-ai-internal
+  fashion-proxy:
+    driver: bridge
+    name: fashion-ai-proxy
+
+volumes:
+  nginx_logs:
+    name: fashion-ai-nginx-logs

@@ -1,0 +1,118 @@
+# ============================================================
+# AI Fashion Designer API - Production Dockerfile
+# ============================================================
+# Security-hardened multi-stage build
+# ============================================================
+
+# ---- Stage 1: Builder ----
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        libpq-dev \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for layer caching
+COPY requirements.txt .
+
+# Install Python dependencies into a virtual env
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn
+
+# ---- Stage 2: Production Runtime ----
+FROM python:3.12-slim AS production
+
+LABEL maintainer="AI Fashion Designer <team@fashionai.dev>"
+LABEL description="Fashion AI API - Production"
+LABEL version="1.0.0"
+
+# Security: install only essential runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libpq5 \
+        curl \
+        tini \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get purge -y --auto-remove
+
+# Security: remove unnecessary tools
+RUN rm -rf /usr/bin/apt* /usr/bin/dpkg* /usr/lib/apt /var/lib/dpkg \
+    2>/dev/null || true
+
+# Copy virtual env from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Python environment settings
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    ENVIRONMENT=production \
+    PORT=8000
+
+# Create non-root user with restrictive settings
+RUN groupadd --gid 65534 appuser && \
+    useradd --uid 65534 --gid appuser --shell /usr/sbin/nologin --no-create-home appuser
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Remove unnecessary files from production image
+RUN rm -rf \
+    tests/ \
+    Dockerfile* \
+    docker-compose* \
+    .git/ \
+    .gitignore \
+    .env* \
+    *.md \
+    Makefile \
+    .pytest_cache/ \
+    __pycache__/ \
+    2>/dev/null || true
+
+# Create necessary directories with restricted permissions
+RUN mkdir -p /app/logs /app/.cache && \
+    chown -R appuser:appuser /app && \
+    chmod -R 550 /app && \
+    chmod -R 770 /app/logs /app/.cache
+
+# Security: drop all capabilities
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -sf http://localhost:8000/health || exit 1
+
+# Use tini as init system
+ENTRYPOINT ["tini", "--"]
+
+# Production command: gunicorn with uvicorn workers
+CMD ["gunicorn", "app.main:app", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--timeout", "120", \
+     "--graceful-timeout", "30", \
+     "--keep-alive", "5", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "50", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "warning", \
+     "--forwarded-allow-ips", "*"]

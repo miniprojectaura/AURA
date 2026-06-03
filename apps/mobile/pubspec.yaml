@@ -1,0 +1,79 @@
+name: fashion_ai
+description: AI-Powered Personal Fashion Designer — Multi-agent conversational AI for personalized Indian fashion
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Networking
+  dio: ^5.4.3
+  web_socket_channel: ^2.4.5
+  connectivity_plus: ^6.0.3
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+  image_picker: ^1.0.7
+  camera: ^0.11.0+2
+  flutter_svg: ^2.0.9
+
+  # Audio
+  record: ^5.1.0
+  just_audio: ^0.9.38
+
+  # Storage
+  shared_preferences: ^2.2.3
+  path_provider: ^2.1.2
+  hive_flutter: ^1.1.0
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+
+  # Utils
+  uuid: ^4.3.3
+  mime: ^1.0.5
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.9
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/animations/
+
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Regular.ttf
+        - asset: assets/fonts/Outfit-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-Bold.ttf
+          weight: 700
