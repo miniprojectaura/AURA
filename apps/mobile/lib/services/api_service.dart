@@ -3,7 +3,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String _baseUrl = 'http://10.0.2.2:8000'; // Android emulator → localhost
+/// API base URL — set at build time via:
+///   flutter build apk --dart-define=API_URL=https://your-app.onrender.com
+/// Defaults to Android emulator localhost mapping.
+const String _baseUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'http://10.0.2.2:8000',
+);
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
