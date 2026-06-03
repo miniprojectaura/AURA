@@ -94,16 +94,47 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def fix_database_url_scheme(cls, v):
-        """Auto-correct DB URL to use asyncpg driver.
+        """Auto-correct DB URL to use asyncpg driver and resolve IPv6 issues.
 
-        Supabase/Heroku give postgresql:// or postgres:// URLs, but
-        SQLAlchemy async requires postgresql+asyncpg://.
+        1. Supabase/Heroku give postgresql:// or postgres:// URLs, but
+           SQLAlchemy async requires postgresql+asyncpg://.
+        2. Supabase pooler resolves to IPv6 which Render can't reach.
+           We resolve the hostname to IPv4 and replace it in the URL.
         """
-        if isinstance(v, str):
-            if v.startswith("postgres://"):
-                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
-            elif v.startswith("postgresql://") and "+asyncpg" not in v:
-                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if not isinstance(v, str):
+            return v
+
+        # Fix scheme
+        if v.startswith("postgres://"):
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://") and "+asyncpg" not in v:
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        # Resolve cloud hostnames to IPv4 (fixes Render/Railway IPv6 issue)
+        import socket
+        from urllib.parse import urlparse, urlunparse
+
+        try:
+            parsed = urlparse(v)
+            hostname = parsed.hostname
+            if hostname and hostname not in ("localhost", "127.0.0.1", "postgres"):
+                # Resolve to IPv4
+                ipv4_addr = socket.getaddrinfo(
+                    hostname, None, socket.AF_INET
+                )[0][4][0]
+                # Replace hostname with resolved IPv4 in the URL
+                if parsed.port:
+                    new_netloc = f"{parsed.username}:{parsed.password}@{ipv4_addr}:{parsed.port}"
+                else:
+                    new_netloc = f"{parsed.username}:{parsed.password}@{ipv4_addr}"
+                v = urlunparse(parsed._replace(netloc=new_netloc))
+                import logging
+                logging.getLogger(__name__).info(
+                    "Resolved DB host %s → %s (IPv4)", hostname, ipv4_addr
+                )
+        except Exception:
+            pass  # If resolution fails, use original URL and let asyncpg handle it
+
         return v
 
 
