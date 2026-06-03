@@ -91,6 +91,21 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in v.split(",")]
         return v
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_database_url_scheme(cls, v):
+        """Auto-correct DB URL to use asyncpg driver.
+
+        Supabase/Heroku give postgresql:// or postgres:// URLs, but
+        SQLAlchemy async requires postgresql+asyncpg://.
+        """
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgresql://") and "+asyncpg" not in v:
+                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
 
 # Singleton instance
 settings = Settings()
