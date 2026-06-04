@@ -16,6 +16,7 @@ dependencies:
 
   # Networking
   dio: ^5.4.3
+  http: ^1.2.0
   web_socket_channel: ^2.4.5
   connectivity_plus: ^6.0.3
 

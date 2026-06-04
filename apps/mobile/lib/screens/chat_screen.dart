@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../core/theme.dart';
 import '../core/env.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Chat State ──────────────────────────────────────────────────────
 class ChatMessage {
@@ -43,18 +45,68 @@ class ChatNotifier extends StateNotifier<ChatState> {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   String _partialResponse = '';
+  String? _accessToken;
 
   ChatNotifier() : super(ChatState()) {
-    _connect();
+    _initAndConnect();
   }
 
-  void _connect() {
+  /// Authenticate first, then connect WebSocket with real JWT.
+  Future<void> _initAndConnect() async {
+    try {
+      _accessToken = await _getOrCreateToken();
+      if (_accessToken != null) {
+        _connect(_accessToken!);
+      } else {
+        state = state.copyWith(isConnected: false);
+      }
+    } catch (e) {
+      state = state.copyWith(isConnected: false);
+    }
+  }
+
+  /// Load saved token or auto-register a guest user.
+  Future<String?> _getOrCreateToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('access_token');
+    if (saved != null && saved.isNotEmpty) return saved;
+
+    // Auto-register a guest user
+    try {
+      final guestId = DateTime.now().millisecondsSinceEpoch;
+      final response = await http.post(
+        Uri.parse('${Env.apiBaseUrl}/api/v1/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': 'guest_$guestId@fashionai.app',
+          'password': 'Guest\$ecure${guestId}Pass!',
+          'display_name': 'Fashion Lover',
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['access_token'] as String?;
+        if (token != null) {
+          await prefs.setString('access_token', token);
+          if (data['refresh_token'] != null) {
+            await prefs.setString('refresh_token', data['refresh_token']);
+          }
+          return token;
+        }
+      }
+    } catch (_) {
+      // Registration failed — might be network issue
+    }
+    return null;
+  }
+
+  void _connect(String token) {
     try {
       final wsUrl = Env.wsBaseUrl;
+      final uri = Uri.parse('$wsUrl/api/v1/chat/ws/auto?token=$token');
 
-      _channel = WebSocketChannel.connect(
-        Uri.parse('$wsUrl/api/v1/chat/ws/auto?token=demo'),
-      );
+      _channel = WebSocketChannel.connect(uri);
       state = state.copyWith(isConnected: true);
 
       _subscription = _channel!.stream.listen(
