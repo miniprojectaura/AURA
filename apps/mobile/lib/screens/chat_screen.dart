@@ -43,14 +43,25 @@ class ChatNotifier extends StateNotifier<ChatState> {
   StreamSubscription? _subscription;
   String _partialResponse = '';
 
+  /// API base URL from compile-time --dart-define, same as api_service.dart
+  static const String _apiUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://10.0.2.2:8000',
+  );
+
   ChatNotifier() : super(ChatState()) {
     _connect();
   }
 
   void _connect() {
     try {
+      // Convert http(s) to ws(s) for WebSocket connection
+      final wsUrl = _apiUrl
+          .replaceFirst('https://', 'wss://')
+          .replaceFirst('http://', 'ws://');
+
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://10.0.2.2:8000/api/v1/chat/ws/auto?token=demo'),
+        Uri.parse('$wsUrl/api/v1/chat/ws/auto?token=demo'),
       );
       state = state.copyWith(isConnected: true);
 
