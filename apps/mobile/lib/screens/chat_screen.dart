@@ -124,19 +124,36 @@ class ChatNotifier extends StateNotifier<ChatState> {
     try {
       final wsUrl = Env.wsBaseUrl;
       final uri = Uri.parse('$wsUrl/api/v1/chat/ws/auto?token=$token');
+      debugPrint('[AURA] WS connecting to: $wsUrl/api/v1/chat/ws/auto?token=${token.substring(0, 20)}...');
 
       _channel = WebSocketChannel.connect(uri);
-      state = state.copyWith(isConnected: true);
+
+      // Monitor the ready future to detect handshake failures
+      _channel!.ready.then((_) {
+        debugPrint('[AURA] WS handshake complete — connected!');
+        state = state.copyWith(isConnected: true);
+      }).catchError((e) {
+        debugPrint('[AURA] WS handshake FAILED: $e');
+        state = state.copyWith(isConnected: false);
+      });
 
       _subscription = _channel!.stream.listen(
         (data) {
+          debugPrint('[AURA] WS received: ${(data as String).substring(0, (data as String).length.clamp(0, 100))}');
           final msg = jsonDecode(data as String);
           _handleServerMessage(msg);
         },
-        onError: (e) => state = state.copyWith(isConnected: false),
-        onDone: () => state = state.copyWith(isConnected: false),
+        onError: (e) {
+          debugPrint('[AURA] WS stream error: $e');
+          state = state.copyWith(isConnected: false);
+        },
+        onDone: () {
+          debugPrint('[AURA] WS stream done — closeCode=${_channel?.closeCode} reason=${_channel?.closeReason}');
+          state = state.copyWith(isConnected: false);
+        },
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AURA] WS connect exception: $e');
       state = state.copyWith(isConnected: false);
     }
   }
