@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../core/theme.dart';
+import '../core/env.dart';
 
 // ── Chat State ──────────────────────────────────────────────────────
 class ChatMessage {
@@ -43,22 +44,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
   StreamSubscription? _subscription;
   String _partialResponse = '';
 
-  /// API base URL from compile-time --dart-define, same as api_service.dart
-  static const String _apiUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://10.0.2.2:8000',
-  );
-
   ChatNotifier() : super(ChatState()) {
     _connect();
   }
 
   void _connect() {
     try {
-      // Convert http(s) to ws(s) for WebSocket connection
-      final wsUrl = _apiUrl
-          .replaceFirst('https://', 'wss://')
-          .replaceFirst('http://', 'ws://');
+      final wsUrl = Env.wsBaseUrl;
 
       _channel = WebSocketChannel.connect(
         Uri.parse('$wsUrl/api/v1/chat/ws/auto?token=demo'),

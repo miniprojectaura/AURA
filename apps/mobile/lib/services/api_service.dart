@@ -3,13 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// API base URL — set at build time via:
-///   flutter build apk --dart-define=API_URL=https://your-app.onrender.com
-/// Defaults to Android emulator localhost mapping.
-const String _baseUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+import '../core/env.dart';
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
@@ -19,7 +13,7 @@ class ApiService {
 
   ApiService() {
     _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: Env.apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
@@ -96,7 +90,7 @@ class ApiService {
     return response.data;
   }
 
-  String get wsUrl => '${_baseUrl.replaceFirst('http', 'ws')}/api/v1/chat/ws';
+  String get wsUrl => '${Env.wsBaseUrl}/api/v1/chat/ws';
   String? get token => _accessToken;
 
   // ── Design ──────────────────────────────────────────────────────
