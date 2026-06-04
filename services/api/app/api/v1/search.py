@@ -71,7 +71,7 @@ async def find_similar_products(
 async def get_trending_products(
     category: Optional[str] = None,
     limit: int = Query(default=20, ge=1, le=50),
-) -> list[dict]:
+) -> dict:
     """Get trending products — most clicked/viewed recently."""
     # In production, this would query analytics data
     return {"trending": [], "category": category}

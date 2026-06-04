@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
+import '../services/api_service.dart';
 
 class DesignScreen extends ConsumerStatefulWidget {
   const DesignScreen({super.key});
@@ -215,14 +216,66 @@ class _DesignScreenState extends ConsumerState<DesignScreen> {
 
     setState(() => _isGenerating = true);
 
-    // Simulate design generation (in production, calls API)
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (mounted) {
-      setState(() => _isGenerating = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✨ Design generated! Check your chat for details.')),
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      await apiService.loadSavedToken();
+      final result = await apiService.generateDesign(
+        occasion: _selectedOccasion,
+        bodyType: _selectedBodyType,
+        colors: _selectedColors.toList(),
+        styleKeywords: _promptController.text.trim().split(' '),
+        culturalContext: null,
       );
+
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        final responseText = result['response_text'] ?? 'Design generated!';
+        final outfits = (result['outfits'] as List?) ?? [];
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('✨ Design Result'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(responseText, style: const TextStyle(fontSize: 14)),
+                  if (outfits.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('Generated Outfits:', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ...outfits.map((o) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(o['description'] ?? 'Outfit design', style: const TextStyle(fontSize: 13)),
+                      ),
+                    )),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Design generation failed: $e')),
+        );
+      }
     }
   }
 }

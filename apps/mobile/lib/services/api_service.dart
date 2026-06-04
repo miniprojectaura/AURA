@@ -95,28 +95,29 @@ class ApiService {
 
   // ── Design ──────────────────────────────────────────────────────
   Future<Map<String, dynamic>> generateDesign({
-    required String prompt,
     String? occasion,
-    String? colorScheme,
     String? bodyType,
+    List<String> colors = const [],
+    List<String> styleKeywords = const [],
+    List<String> garmentTypes = const [],
+    String? culturalContext,
   }) async {
     final response = await _dio.post('/api/v1/design/generate', data: {
-      'prompt': prompt,
       'occasion': occasion,
-      'color_scheme': colorScheme,
       'body_type': bodyType,
+      'colors': colors,
+      'style_keywords': styleKeywords,
+      'garment_types': garmentTypes,
+      'cultural_context': culturalContext,
     });
     return response.data;
   }
 
-  Future<Map<String, dynamic>> getDesignHistory() async {
-    final response = await _dio.get('/api/v1/design/history');
-    return response.data;
-  }
-
   // ── Wardrobe ────────────────────────────────────────────────────
-  Future<List<dynamic>> getWardrobeItems() async {
-    final response = await _dio.get('/api/v1/wardrobe/items');
+  Future<List<dynamic>> getWardrobeItems({String? category}) async {
+    final queryParams = <String, dynamic>{};
+    if (category != null) queryParams['category'] = category;
+    final response = await _dio.get('/api/v1/wardrobe/', queryParameters: queryParams);
     return response.data;
   }
 
@@ -125,25 +126,45 @@ class ApiService {
     required String category,
     String? color,
     String? imageUrl,
+    String? notes,
   }) async {
-    final response = await _dio.post('/api/v1/wardrobe/items', data: {
+    final response = await _dio.post('/api/v1/wardrobe/', data: {
       'name': name,
       'category': category,
       'color': color,
       'image_url': imageUrl,
+      'notes': notes,
     });
     return response.data;
   }
 
+  Future<void> deleteWardrobeItem(String itemId) async {
+    await _dio.delete('/api/v1/wardrobe/$itemId');
+  }
+
+  Future<Map<String, dynamic>> suggestOutfit({required String occasion}) async {
+    final response = await _dio.post('/api/v1/wardrobe/suggest-outfit',
+      queryParameters: {'occasion': occasion},
+    );
+    return response.data;
+  }
+
   // ── Search ──────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> searchProducts({
+  Future<List<dynamic>> searchProducts({
     required String query,
     int limit = 10,
   }) async {
-    final response = await _dio.post('/api/v1/search/', data: {
+    final response = await _dio.post('/api/v1/search/products', data: {
       'query': query,
       'limit': limit,
     });
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getTrending({String? category}) async {
+    final queryParams = <String, dynamic>{};
+    if (category != null) queryParams['category'] = category;
+    final response = await _dio.get('/api/v1/search/trending', queryParameters: queryParams);
     return response.data;
   }
 
@@ -154,8 +175,12 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
-    final response = await _dio.patch('/api/v1/auth/me', data: data);
+    final response = await _dio.put('/api/v1/auth/me', data: data);
     return response.data;
+  }
+
+  Future<void> logoutServer() async {
+    await _dio.post('/api/v1/auth/logout');
   }
 
   // ── Token management ────────────────────────────────────────────

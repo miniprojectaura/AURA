@@ -1,13 +1,17 @@
 /// Home Screen — Dashboard with quick actions, greeting, and recent activity.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import 'profile_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(profileProvider);
+    final displayName = profileState.user?['display_name'] ?? 'there';
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -34,7 +38,7 @@ class HomeScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Good ${_greeting()}!',
+                              Text('Good ${_greeting()}, $displayName!',
                                 style: Theme.of(context).textTheme.titleMedium),
                               Text('Your AI Fashion Designer is ready',
                                 style: Theme.of(context).textTheme.bodySmall),

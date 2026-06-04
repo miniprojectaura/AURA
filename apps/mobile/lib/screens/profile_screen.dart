@@ -1,16 +1,94 @@
 /// Profile Screen — User settings, body profile, style preferences, and app settings.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme.dart';
+import '../services/api_service.dart';
+
+// ── Profile State ──────────────────────────────────────────────────
+
+class ProfileState {
+  final Map<String, dynamic>? user;
+  final bool isLoading;
+  final String? error;
+  ProfileState({this.user, this.isLoading = false, this.error});
+  ProfileState copyWith({Map<String, dynamic>? user, bool? isLoading, String? error}) =>
+    ProfileState(user: user ?? this.user, isLoading: isLoading ?? this.isLoading, error: error);
+}
+
+class ProfileNotifier extends StateNotifier<ProfileState> {
+  final ApiService _api;
+  ProfileNotifier(this._api) : super(ProfileState(isLoading: true)) {
+    loadProfile();
+  }
+
+  Future<void> loadProfile() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _api.loadSavedToken();
+      final user = await _api.getProfile();
+      state = state.copyWith(user: user, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> updateDisplayName(String name) async {
+    try {
+      await _api.loadSavedToken();
+      final updated = await _api.updateProfile({'display_name': name});
+      state = state.copyWith(user: updated);
+    } catch (e) {
+      state = state.copyWith(error: 'Update failed: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _api.loadSavedToken();
+      await _api.logoutServer();
+    } catch (_) {}
+    await _api.logout();
+    state = ProfileState();
+  }
+}
+
+final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((ref) {
+  return ProfileNotifier(ref.read(apiServiceProvider));
+});
+
+// ── Screen ──────────────────────────────────────────────────────────
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(profileProvider);
+
+    final user = profileState.user;
+    final displayName = user?['display_name'] ?? 'Fashion Lover';
+    final email = user?['email'] ?? '';
+    final createdAt = user?['created_at'] ?? '';
+    final language = user?['language_preference'] ?? 'en';
+
+    String joinDate = '';
+    if (createdAt.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(createdAt);
+        final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        joinDate = 'Joined ${months[dt.month - 1]} ${dt.year}';
+      } catch (_) {
+        joinDate = '';
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: SingleChildScrollView(
+      body: profileState.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
@@ -20,19 +98,26 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   Container(
                     width: 88, height: 88,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.gradientPrimary,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: BoxDecoration(gradient: AppColors.gradientPrimary, shape: BoxShape.circle),
                     child: const Icon(Icons.person, color: Colors.white, size: 44),
                   ),
                   const SizedBox(height: 12),
-                  Text('Fashion Enthusiast', style: Theme.of(context).textTheme.titleMedium),
-                  Text('Joined May 2026', style: Theme.of(context).textTheme.bodySmall),
+                  Text(displayName, style: Theme.of(context).textTheme.titleMedium),
+                  if (email.isNotEmpty) Text(email, style: Theme.of(context).textTheme.bodySmall),
+                  if (joinDate.isNotEmpty) Text(joinDate, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
             ),
             const SizedBox(height: 28),
+
+            if (profileState.error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                child: Text(profileState.error!, style: const TextStyle(color: AppColors.error, fontSize: 12)),
+              ),
+            ],
 
             // Body Profile
             _Section(
@@ -42,7 +127,6 @@ class ProfileScreen extends ConsumerWidget {
                 _SettingTile(icon: Icons.height, title: 'Height', subtitle: 'Not set', onTap: () {}),
                 _SettingTile(icon: Icons.monitor_weight, title: 'Body Type', subtitle: 'Not set', onTap: () {}),
                 _SettingTile(icon: Icons.color_lens, title: 'Skin Tone', subtitle: 'Not analyzed', onTap: () {}),
-                _SettingTile(icon: Icons.camera_alt, title: 'Create 3D Avatar', subtitle: 'Upload front & side photos', onTap: () {}),
               ],
             ),
             const SizedBox(height: 16),
@@ -55,31 +139,23 @@ class ProfileScreen extends ConsumerWidget {
                 _SettingTile(icon: Icons.palette, title: 'Favorite Colors', subtitle: 'Not set', onTap: () {}),
                 _SettingTile(icon: Icons.checkroom, title: 'Preferred Styles', subtitle: 'Ethnic, Indo-Western', onTap: () {}),
                 _SettingTile(icon: Icons.monetization_on, title: 'Budget Range', subtitle: '₹2,000 - ₹10,000', onTap: () {}),
-                _SettingTile(icon: Icons.favorite, title: 'Liked Designs', subtitle: '0 designs saved', onTap: () {}),
               ],
             ),
             const SizedBox(height: 16),
 
-            // App Settings
+            // Account
             _Section(
-              title: 'Settings',
+              title: 'Account',
               icon: Icons.settings,
               children: [
-                _SettingTile(icon: Icons.language, title: 'Language', subtitle: 'English', onTap: () {}),
-                _SettingTile(icon: Icons.notifications, title: 'Notifications', subtitle: 'Enabled', onTap: () {}),
-                _SettingTile(icon: Icons.cloud_off, title: 'Offline Mode', subtitle: 'Disabled', onTap: () {}),
+                _SettingTile(
+                  icon: Icons.person_outline,
+                  title: 'Display Name',
+                  subtitle: displayName,
+                  onTap: () => _editDisplayName(context, ref, displayName),
+                ),
+                _SettingTile(icon: Icons.language, title: 'Language', subtitle: language == 'en' ? 'English' : language, onTap: () {}),
                 _SettingTile(icon: Icons.dark_mode, title: 'Theme', subtitle: 'Dark', onTap: () {}),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Data & Privacy
-            _Section(
-              title: 'Data & Privacy',
-              icon: Icons.shield,
-              children: [
-                _SettingTile(icon: Icons.download, title: 'Export My Data', subtitle: 'Download all your data', onTap: () {}),
-                _SettingTile(icon: Icons.delete_forever, title: 'Delete Account', subtitle: 'GDPR data deletion', onTap: () {}, isDestructive: true),
               ],
             ),
             const SizedBox(height: 16),
@@ -97,25 +173,16 @@ class ProfileScreen extends ConsumerWidget {
                   Text('AI Fashion Designer', style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 4),
                   Text('Version 1.0.0', style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(onPressed: () {}, child: const Text('Privacy Policy', style: TextStyle(fontSize: 12))),
-                      const Text('•', style: TextStyle(color: AppColors.textMuted)),
-                      TextButton(onPressed: () {}, child: const Text('Terms of Service', style: TextStyle(fontSize: 12))),
-                    ],
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
             // Logout
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () => _handleLogout(context, ref),
                 icon: const Icon(Icons.logout, color: AppColors.error),
                 label: const Text('Log Out', style: TextStyle(color: AppColors.error)),
                 style: OutlinedButton.styleFrom(
@@ -129,6 +196,59 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _editDisplayName(BuildContext context, WidgetRef ref, String current) {
+    final controller = TextEditingController(text: current);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Edit Display Name'),
+        content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Your name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (controller.text.trim().isNotEmpty) {
+                ref.read(profileProvider.notifier).updateDisplayName(controller.text.trim());
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log Out', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await ref.read(profileProvider.notifier).logout();
+      // Clear saved tokens
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('refresh_token');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
+        context.go('/home');
+      }
+    }
   }
 }
 
@@ -180,7 +300,7 @@ class _SettingTile extends StatelessWidget {
       leading: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
-          color: (isDestructive ? AppColors.error : AppColors.primary).withOpacity(0.1),
+          color: (isDestructive ? AppColors.error : AppColors.primary).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 18, color: isDestructive ? AppColors.error : AppColors.primary),
