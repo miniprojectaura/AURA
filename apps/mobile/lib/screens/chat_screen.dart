@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../core/theme.dart';
 import '../core/env.dart';
@@ -257,6 +258,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.primaryDark),
+          onPressed: () => context.go('/home'),
+        ),
         title: Row(
           children: [
             Container(
@@ -271,7 +276,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Fashion AI', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Fashion AI', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryDark)),
                 Text(
                   chatState.isConnected ? 'Online' : 'Offline',
                   style: TextStyle(
@@ -331,7 +336,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.95),
+              color: AppColors.surface,
               border: const Border(top: BorderSide(color: AppColors.border, width: 0.5)),
             ),
             child: SafeArea(
@@ -343,7 +348,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: Container(
                       width: 40, height: 40,
                       decoration: BoxDecoration(
-                        color: _isRecording ? AppColors.error.withOpacity(0.2) : AppColors.surfaceLight,
+                        color: _isRecording ? AppColors.error.withValues(alpha: 0.2) : AppColors.surfaceLight,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _isRecording ? AppColors.error : AppColors.border),
                       ),
@@ -544,11 +549,11 @@ class _SuggestionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
+          color: AppColors.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
         ),
-        child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.primaryLight, fontWeight: FontWeight.w500)),
+        child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w500)),
       ),
     );
   }

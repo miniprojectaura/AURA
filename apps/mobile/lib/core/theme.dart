@@ -1,64 +1,75 @@
-/// Premium dark theme with glassmorphism, gradients, and rich typography.
+/// AURA Design System — Blue palette, glassmorphism, premium typography.
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Primary palette
-  static const primary = Color(0xFF8B5CF6);      // Electric purple
-  static const primaryLight = Color(0xFFA78BFA);
-  static const primaryDark = Color(0xFF6D28D9);
+  // ── Blue Palette (primary design language) ──────────────────────
+  static const primary = Color(0xFF2E86DE);        // Core blue
+  static const primaryLight = Color(0xFF54A0FF);    // Light blue accent
+  static const primaryDark = Color(0xFF1B4F72);     // Dark blue (headers/nav)
+  static const primaryDeep = Color(0xFF0C2844);     // Deepest blue
 
-  // Accent
-  static const accent = Color(0xFF06B6D4);        // Cyan
-  static const accentLight = Color(0xFF22D3EE);
-
-  // Semantic
-  static const success = Color(0xFF10B981);
-  static const warning = Color(0xFFF59E0B);
-  static const error = Color(0xFFEF4444);
-  static const info = Color(0xFF3B82F6);
-
-  // Neutrals (dark mode)
-  static const background = Color(0xFF0A0A0F);
-  static const surface = Color(0xFF13131A);
-  static const surfaceLight = Color(0xFF1E1E2A);
-  static const surfaceLighter = Color(0xFF2A2A3A);
-  static const border = Color(0xFF2E2E3E);
-  static const borderLight = Color(0xFF3A3A4A);
+  // Surface blues
+  static const background = Color(0xFFE8F4FD);     // Very light blue bg
+  static const surface = Color(0xFFFFFFFF);         // White cards
+  static const surfaceLight = Color(0xFFF0F7FC);    // Subtle blue tint
+  static const surfaceLighter = Color(0xFFD6EBFA);  // Light blue fill
+  static const border = Color(0xFFB8D4E8);          // Soft blue border
+  static const borderLight = Color(0xFFD0E8F7);     // Lighter border
 
   // Text
-  static const textPrimary = Color(0xFFF5F5F7);
-  static const textSecondary = Color(0xFFA1A1AA);
-  static const textMuted = Color(0xFF71717A);
+  static const textPrimary = Color(0xFF1B3A5C);     // Dark blue text
+  static const textSecondary = Color(0xFF5A7FA0);   // Medium blue text
+  static const textMuted = Color(0xFF8BACC4);       // Light muted text
+  static const textOnPrimary = Color(0xFFFFFFFF);   // White on blue
+
+  // Semantic
+  static const success = Color(0xFF2ECC71);
+  static const warning = Color(0xFFF39C12);
+  static const error = Color(0xFFE74C3C);
+  static const info = Color(0xFF3498DB);
+
+  // Accent (secondary blue shade)
+  static const accent = Color(0xFF0ABDE3);          // Cyan-blue
+  static const accentLight = Color(0xFF48DBFB);
 
   // Gradients
   static const gradientPrimary = LinearGradient(
-    colors: [primary, accent],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const gradientGold = LinearGradient(
-    colors: [Color(0xFFD4AF37), Color(0xFFF5D060), Color(0xFFD4AF37)],
+    colors: [Color(0xFF2E86DE), Color(0xFF0ABDE3)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const gradientSurface = LinearGradient(
-    colors: [Color(0x1A8B5CF6), Color(0x0D06B6D4)],
+    colors: [Color(0xFFE8F4FD), Color(0xFFD6EBFA)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static const gradientCard = LinearGradient(
+    colors: [Color(0xFFFFFFFF), Color(0xFFF0F7FC)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Keep for backward compat with glass_card.dart
+  static const gradientGold = LinearGradient(
+    colors: [Color(0xFF2E86DE), Color(0xFF54A0FF), Color(0xFF2E86DE)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 }
 
 class AppTheme {
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => lightTheme; // Redirect to light
+
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.primary,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.accent,
         surface: AppColors.surface,
@@ -82,7 +93,7 @@ class AppTheme {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surface.withOpacity(0.8),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -93,34 +104,27 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textMuted,
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-      ),
       cardTheme: CardThemeData(
-        color: AppColors.surfaceLight,
+        color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceLight,
+        fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -132,13 +136,13 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceLight,
-        selectedColor: AppColors.primary.withOpacity(0.2),
+        selectedColor: AppColors.primary.withValues(alpha: 0.15),
         labelStyle: GoogleFonts.outfit(color: AppColors.textPrimary, fontSize: 13),
         side: const BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -146,11 +150,11 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceLight,
-        contentTextStyle: GoogleFonts.outfit(color: AppColors.textPrimary),
+        backgroundColor: AppColors.primaryDark,
+        contentTextStyle: GoogleFonts.outfit(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),

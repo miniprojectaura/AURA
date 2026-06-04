@@ -1,4 +1,4 @@
-/// Home Screen — Dashboard with quick actions, greeting, and recent activity.
+/// Home Screen — Hub dashboard with action cards and animated avatar area.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,220 +12,225 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileProvider);
     final displayName = profileState.user?['display_name'] ?? 'there';
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFD6EBFA), Color(0xFFE8F4FD)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                // Top bar — greeting + avatar
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 48, height: 48,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.gradientPrimary,
-                            borderRadius: BorderRadius.circular(14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hello, $displayName 👋',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primaryDark,
+                            ),
                           ),
-                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Good ${_greeting()}, $displayName!',
-                                style: Theme.of(context).textTheme.titleMedium),
-                              Text('Your AI Fashion Designer is ready',
-                                style: Theme.of(context).textTheme.bodySmall),
-                            ],
+                          const SizedBox(height: 4),
+                          Text(
+                            'Your AI Fashion Designer is ready',
+                            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
                           ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => context.go('/profile'),
+                      child: Container(
+                        width: 48, height: 48,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.gradientPrimary,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, color: AppColors.textSecondary),
-                          onPressed: () {},
-                        ),
-                      ],
+                        child: const Icon(Icons.person, color: Colors.white, size: 24),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
+                const SizedBox(height: 28),
 
-            // Quick Actions
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Text('Quick Actions',
-                  style: Theme.of(context).textTheme.titleLarge),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 120,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _QuickAction(
-                      icon: Icons.chat_bubble_rounded,
-                      label: 'Chat with\nDesigner',
-                      gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)]),
-                      onTap: () => context.go('/chat'),
+                // Avatar / Fashion illustration area
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: Container(
+                      width: size.width * 0.7,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            blurRadius: 40,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Animated avatar placeholder (Rive ready)
+                          Container(
+                            width: 120, height: 120,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.gradientPrimary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.25),
+                                  blurRadius: 24,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.person_outline, color: Colors.white, size: 60),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Your Style Avatar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Crafting the perfect look for you',
+                            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
                     ),
-                    _QuickAction(
-                      icon: Icons.auto_awesome,
-                      label: 'Design\nOutfit',
-                      gradient: const LinearGradient(colors: [Color(0xFF06B6D4), Color(0xFF0891B2)]),
-                      onTap: () => context.go('/design'),
-                    ),
-                    _QuickAction(
-                      icon: Icons.search_rounded,
-                      label: 'Find\nProducts',
-                      gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
-                      onTap: () => context.go('/chat'),
-                    ),
-                    _QuickAction(
-                      icon: Icons.checkroom_rounded,
-                      label: 'My\nWardrobe',
-                      gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
-                      onTap: () => context.go('/wardrobe'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // Trending Styles
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                child: Text('Trending Now',
-                  style: Theme.of(context).textTheme.titleLarge),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 200,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: const [
-                    _TrendCard(title: 'Wedding Season', subtitle: 'Bridal lehengas & sherwanis', emoji: '💍', color: Color(0xFF8B5CF6)),
-                    _TrendCard(title: 'Indo-Western', subtitle: 'Fusion styles trending', emoji: '✨', color: Color(0xFF06B6D4)),
-                    _TrendCard(title: 'Sustainable', subtitle: 'Khadi & handloom revival', emoji: '🌿', color: Color(0xFF10B981)),
-                    _TrendCard(title: 'Festival Ready', subtitle: 'Diwali collection ideas', emoji: '🪔', color: Color(0xFFF59E0B)),
-                  ],
-                ),
-              ),
-            ),
+                const SizedBox(height: 20),
 
-            // Style Tips
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                child: Text('Style Tips',
-                  style: Theme.of(context).textTheme.titleLarge),
-              ),
+                // Action Cards — Hub navigation
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    children: [
+                      _HubCard(
+                        icon: Icons.auto_awesome,
+                        label: 'Generate New Outfit',
+                        subtitle: 'AI-powered fashion design',
+                        onTap: () => context.go('/design'),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _HubCardSmall(
+                              icon: Icons.checkroom,
+                              label: 'Wardrobe',
+                              onTap: () => context.go('/wardrobe'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _HubCardSmall(
+                              icon: Icons.chat_bubble_rounded,
+                              label: 'Chat',
+                              onTap: () => context.go('/chat'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _HubCardSmall(
+                              icon: Icons.settings,
+                              label: 'Settings',
+                              onTap: () => context.go('/profile'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            SliverList(
-              delegate: SliverChildListDelegate([
-                const _StyleTip(
-                  icon: Icons.color_lens,
-                  title: 'Color Theory for Your Skin Tone',
-                  subtitle: 'Discover which colors make you glow',
-                ),
-                const _StyleTip(
-                  icon: Icons.straighten,
-                  title: 'Dress for Your Body Type',
-                  subtitle: 'Silhouettes that flatter every shape',
-                ),
-                const _StyleTip(
-                  icon: Icons.auto_fix_high,
-                  title: 'Accessorize Like a Pro',
-                  subtitle: 'Jewelry, footwear & bags for every outfit',
-                ),
-                const SizedBox(height: 100),
-              ]),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
-  }
 }
 
-class _QuickAction extends StatelessWidget {
+class _HubCard extends StatelessWidget {
   final IconData icon;
   final String label;
-  final LinearGradient gradient;
+  final String subtitle;
   final VoidCallback onTap;
-  const _QuickAction({required this.icon, required this.label, required this.gradient, required this.onTap});
+  const _HubCard({required this.icon, required this.label, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 100, height: 110,
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: gradient.colors.first.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: Colors.white, size: 28),
-              const Spacer(),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, height: 1.3)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TrendCard extends StatelessWidget {
-  final String title, subtitle, emoji;
-  final Color color;
-  const _TrendCard({required this.title, required this.subtitle, required this.emoji, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        width: 160,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 32)),
-            const Spacer(),
-            Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 15)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: Theme.of(context).textTheme.bodySmall, maxLines: 2),
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                gradient: AppColors.gradientPrimary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryDark)),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted),
           ],
         ),
       ),
@@ -233,34 +238,43 @@ class _TrendCard extends StatelessWidget {
   }
 }
 
-class _StyleTip extends StatelessWidget {
+class _HubCardSmall extends StatelessWidget {
   final IconData icon;
-  final String title, subtitle;
-  const _StyleTip({required this.icon, required this.title, required this.subtitle});
+  final String label;
+  final VoidCallback onTap;
+  const _HubCardSmall({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: ListTile(
-          leading: Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 22),
-          ),
-          title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLighter,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primaryDark)),
+          ],
         ),
       ),
     );

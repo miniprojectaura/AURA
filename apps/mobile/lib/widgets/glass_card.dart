@@ -1,3 +1,4 @@
+library;
 /// Glassmorphism card widget — reusable glass-like container.
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -28,10 +29,10 @@ class GlassCard extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(opacity),
+            color: Colors.white.withValues(alpha: opacity),
             borderRadius: borderRadius,
             border: Border.all(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               width: 1,
             ),
           ),
