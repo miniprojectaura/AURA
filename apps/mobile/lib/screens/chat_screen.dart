@@ -53,36 +53,49 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   /// Authenticate first, then connect WebSocket with real JWT.
   Future<void> _initAndConnect() async {
+    debugPrint('[AURA] _initAndConnect starting...');
     try {
       _accessToken = await _getOrCreateToken();
+      debugPrint('[AURA] Token result: ${_accessToken != null ? "got token" : "NULL"}');
       if (_accessToken != null) {
         _connect(_accessToken!);
       } else {
+        debugPrint('[AURA] No token — setting offline');
         state = state.copyWith(isConnected: false);
       }
     } catch (e) {
+      debugPrint('[AURA] _initAndConnect error: $e');
       state = state.copyWith(isConnected: false);
     }
   }
 
   /// Load saved token or auto-register a guest user.
   Future<String?> _getOrCreateToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('access_token');
-    if (saved != null && saved.isNotEmpty) return saved;
-
-    // Auto-register a guest user
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('access_token');
+      if (saved != null && saved.isNotEmpty) {
+        debugPrint('[AURA] Using saved token: ${saved.substring(0, 20)}...');
+        return saved;
+      }
+
+      // Auto-register a guest user
       final guestId = DateTime.now().millisecondsSinceEpoch;
+      final email = 'guest_$guestId@fashionai.app';
+      final password = 'GuestPass${guestId}Secure';
+      debugPrint('[AURA] Registering guest: $email at ${Env.apiBaseUrl}');
+
       final response = await http.post(
         Uri.parse('${Env.apiBaseUrl}/api/v1/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': 'guest_$guestId@fashionai.app',
-          'password': 'Guest\$ecure${guestId}Pass!',
+          'email': email,
+          'password': password,
           'display_name': 'Fashion Lover',
         }),
       );
+
+      debugPrint('[AURA] Register response: ${response.statusCode}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -90,13 +103,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
         if (token != null) {
           await prefs.setString('access_token', token);
           if (data['refresh_token'] != null) {
-            await prefs.setString('refresh_token', data['refresh_token']);
+            await prefs.setString('refresh_token', data['refresh_token'] as String);
           }
+          debugPrint('[AURA] Got token: ${token.substring(0, 20)}...');
           return token;
+        } else {
+          debugPrint('[AURA] No access_token in response body');
         }
+      } else {
+        debugPrint('[AURA] Register failed: ${response.body}');
       }
-    } catch (_) {
-      // Registration failed — might be network issue
+    } catch (e, st) {
+      debugPrint('[AURA] Token error: $e');
+      debugPrint('[AURA] Stack: $st');
     }
     return null;
   }
