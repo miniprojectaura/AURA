@@ -145,6 +145,13 @@ class HomeScreen extends ConsumerWidget {
                         onTap: () => context.go('/design'),
                       ),
                       const SizedBox(height: 10),
+                      _HubCard(
+                        icon: Icons.accessibility_new,
+                        label: 'Body Profile',
+                        subtitle: 'Set up or update your measurements',
+                        onTap: () => context.go('/body-setup'),
+                      ),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Expanded(

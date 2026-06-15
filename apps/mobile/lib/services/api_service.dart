@@ -113,6 +113,26 @@ class ApiService {
     return response.data;
   }
 
+  // ── Body Analysis ──────────────────────────────────────────────
+  Future<Map<String, dynamic>> analyzeBodyPhoto(List<int> photoBytes, String filename) async {
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(photoBytes, filename: filename),
+    });
+    final response = await _dio.post('/api/v1/avatar/analyze',
+      data: formData,
+      options: Options(
+        sendTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getBodyProfile() async {
+    final response = await _dio.get('/api/v1/avatar/profile');
+    return response.data;
+  }
+
   // ── Wardrobe ────────────────────────────────────────────────────
   Future<List<dynamic>> getWardrobeItems({String? category}) async {
     final queryParams = <String, dynamic>{};

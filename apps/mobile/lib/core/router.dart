@@ -9,6 +9,7 @@ import '../screens/chat_screen.dart';
 import '../screens/design_screen.dart';
 import '../screens/wardrobe_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/body_setup_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -23,6 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/design', builder: (_, __) => const DesignScreen()),
       GoRoute(path: '/wardrobe', builder: (_, __) => const WardrobeScreen()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/body-setup', builder: (_, __) => const BodySetupScreen()),
     ],
   );
 });
