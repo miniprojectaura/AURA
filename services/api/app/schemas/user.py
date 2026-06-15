@@ -64,6 +64,7 @@ class BodyProfileCreate(BaseModel):
     waist_cm: Optional[float] = Field(None, ge=30, le=200)
     hip_cm: Optional[float] = Field(None, ge=30, le=200)
     shoulder_width_cm: Optional[float] = Field(None, ge=20, le=100)
+    inseam_cm: Optional[float] = Field(None, ge=40, le=120)
     body_shape: Optional[str] = None
     skin_tone: Optional[str] = None
 
@@ -77,6 +78,7 @@ class BodyProfileResponse(_BaseSchema):
     waist_cm: Optional[float] = None
     hip_cm: Optional[float] = None
     shoulder_width_cm: Optional[float] = None
+    inseam_cm: Optional[float] = None
     body_shape: str
     skin_tone: Optional[str] = None
     avatar_glb_url: Optional[str] = None

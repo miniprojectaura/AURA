@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.jwt import get_current_active_user
 from app.database import get_db
-from app.models.user import BodyProfile, User
+from app.models.user import BodyProfile, BodyShape, User
 from app.schemas.user import BodyProfileCreate, BodyProfileResponse
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,11 @@ async def analyze_body_photo(
     if result.inseam_cm:
         profile.inseam_cm = result.inseam_cm
 
-    profile.body_shape = result.body_shape
+    # Convert string to BodyShape enum
+    try:
+        profile.body_shape = BodyShape(result.body_shape)
+    except ValueError:
+        profile.body_shape = BodyShape.UNKNOWN
     profile.skin_tone = result.skin_tone
 
     # Store full analysis in smplx_params JSON field

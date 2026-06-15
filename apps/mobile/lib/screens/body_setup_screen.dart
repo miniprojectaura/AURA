@@ -1,5 +1,4 @@
 /// Body Setup Screen — Camera/gallery photo capture → AI body analysis → measurements display.
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -488,7 +487,8 @@ class _MeasurementGrid extends StatelessWidget {
     for (final entry in labels.entries) {
       final val = measurements[entry.key];
       if (val != null) {
-        items.add(MapEntry(entry.value, '${val.toStringAsFixed(1)} ${units[entry.key]}'));
+        final numVal = (val is num) ? val : num.tryParse(val.toString()) ?? 0;
+        items.add(MapEntry(entry.value, '${numVal.toStringAsFixed(1)} ${units[entry.key]}'));
       }
     }
 
